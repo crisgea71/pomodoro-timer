@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 260px; height: 320px; background: transparent; overflow: hidden; font-family: -apple-system, sans-serif; user-select: none; -webkit-user-select: none; }
+
+#circle-wrap { width: 220px; height: 220px; margin: 0 auto; position: relative; }
+#ring-svg { position: absolute; inset: 0; width: 220px; height: 220px; transform: rotate(-90deg); }
+#ring-bg { fill: none; stroke: rgba(255,255,255,.1); stroke-width: 6; }
+#ring-progress { fill: none; stroke: #ff4d1c; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 584; stroke-dashoffset: 0; transition: stroke-dashoffset .9s linear, stroke .4s; }
+
+#face { position: absolute; inset: 14px; border-radius: 50%; background: rgba(14,14,14,.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: .5px solid rgba(255,255,255,.12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: grab; -webkit-app-region: drag; }
+#face:active { cursor: grabbing; }
+
+#session-dots { display: flex; gap: 5px; -webkit-app-region: no-drag; }
+.sdot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.15); transition: background .3s; }
+.sdot.done { background: #ff4d1c; }
+
+#mode-label { font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: rgba(255,255,255,.4); font-weight: 500; -webkit-app-region: no-drag; }
+#time-display { font-size: 38px; font-weight: 300; color: #fff; letter-spacing: -1px; font-variant-numeric: tabular-nums; line-height: 1; -webkit-app-region: no-drag; }
+
+#start-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: #ff4d1c; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .15s, background .15s; -webkit-app-region: no-drag; }
+#start-btn:hover { transform: scale(1.1); background: #ff6a3d; }
+#start-btn:active { transform: scale(.95); }
+
+#controls { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 0 4px; }
+.ctrl-btn { background: rgba(255,255,255,.06); border: .5px solid rgba(255,255,255,.1); border-radius: 10px; font-size: 17px; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s; -webkit-app-region: no-drag; }
+.ctrl-btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); }
+.ctrl-btn.active { border-color: #ff4d1c; background: rgba(255,77,28,.15); }
+
+.panel { display: none; position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); width: 242px; background: rgba(18,18,18,.98); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: .5px solid rgba(255,255,255,.15); border-radius: 16px; padding: 16px; z-index: 200; }
+.panel.open { display: block; }
+.panel-title { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.35); font-weight: 500; margin-bottom: 14px; }
+.time-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.time-label { font-size: 13px; color: rgba(255,255,255,.6); }
+.time-controls { display: flex; align-items: center; gap: 10px; }
+.time-controls button { width: 26px; height: 26px; border-radius: 50%; border: .5px solid rgba(255,255,255,.25); background: transparent; color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; font-family: -apple-system, sans-serif; }
+.time-controls button:hover { background: rgba(255,255,255,.12); }
+.time-controls span { font-size: 14px; color: #fff; font-weight: 500; min-width: 30px; text-align: center; }
+
+.sound-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.sound-opt { padding: 9px 10px; border: .5px solid rgba(255,255,255,.12); border-radius: 10px; background: transparent; color: rgba(255,255,255,.55); font-size: 12px; cursor: pointer; text-align: left; font-family: -apple-system, sans-serif; transition: all .15s; }
+.sound-opt:hover { background: rgba(255,255,255,.08); color: #fff; }
+.sound-opt.selected { border-color: #ff4d1c; color: #ff4d1c; background: rgba(255,77,28,.1); }
+
+#msg-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,.8); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 9999; align-items: center; justify-content: center; cursor: pointer; }
+#msg-overlay.show { display: flex; }
+#msg-card { background: rgba(14,14,14,.97); border: .5px solid rgba(255,255,255,.15); border-radius: 24px; padding: 40px 36px; text-align: center; max-width: 480px; width: 90vw; display: flex; flex-direction: column; align-items: center; gap: 16px; pointer-events: none; }
+#msg-emoji-big { font-size: 64px; line-height: 1; }
+#msg-text-big { font-size: 26px; font-weight: 300; color: #fff; line-height: 1.4; word-break: break-word; }
+#msg-sub { font-size: 13px; color: rgba(255,255,255,.3); }
+
+#stop-btn { display: none; position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: #ff4d1c; border: none; border-radius: 22px; color: #fff; font-size: 14px; font-weight: 600; padding: 12px 28px; cursor: pointer; z-index: 10000; font-family: -apple-system, sans-serif; white-space: nowrap; box-shadow: 0 4px 20px rgba(255,77,28,.5); }
+#stop-btn.show { display: block; }
+#stop-btn:hover { background: #ff6a3d; }
+
+@keyframes pulse-ring { 0%,100%{box-shadow:0 0 0 0 rgba(255,77,28,.3)} 50%{box-shadow:0 0 0 12px rgba(255,77,28,0)} }
+#face.running { animation: pulse-ring 2s infinite; }
+</style>
+</head>
+<body>
+
+<div id="msg-overlay" onclick="handleOverlayClick()">
+  <div id="msg-card">
+    <div id="msg-emoji-big">🔥</div>
+    <div id="msg-text-big">Let's go!</div>
+    <div id="msg-sub">click anywhere to close</div>
+  </div>
+</div>
+
+<button id="stop-btn" onclick="stopAlarm()">⏹ Stop alarm</button>
+
+<div id="settings-panel" class="panel">
+  <div class="panel-title">Timer settings</div>
+  <div class="time-row">
+    <span class="time-label">Focus (min)</span>
+    <div class="time-controls"><button onclick="adj('work',-1)">−</button><span id="sv-work">25</span><button onclick="adj('work',1)">+</button></div>
+  </div>
+  <div class="time-row">
+    <span class="time-label">Short break</span>
+    <div class="time-controls"><button onclick="adj('short',-1)">−</button><span id="sv-short">5</span><button onclick="adj('short',1)">+</button></div>
+  </div>
+  <div class="time-row" style="margin-bottom:0">
+    <span class="time-label">Long break</span>
+    <div class="time-controls"><button onclick="adj('long',-1)">−</button><span id="sv-long">15</span><button onclick="adj('long',1)">+</button></div>
+  </div>
+</div>
+
+<div id="sounds-panel" class="panel">
+  <div class="panel-title">Alarm sound</div>
+  <div class="sound-grid" id="sound-grid"></div>
+</div>
+
+<div id="circle-wrap">
+  <svg id="ring-svg" viewBox="0 0 220 220">
+    <circle id="ring-bg" cx="110" cy="110" r="93"/>
+    <circle id="ring-progress" cx="110" cy="110" r="93"/>
+  </svg>
+  <div id="face">
+    <div id="session-dots">
+      <div class="sdot" id="sd0"></div><div class="sdot" id="sd1"></div>
+      <div class="sdot" id="sd2"></div><div class="sdot" id="sd3"></div>
+    </div>
+    <div id="mode-label">FOCUS</div>
+    <div id="time-display">25:00</div>
+    <button id="start-btn" onclick="toggleTimer()">
+      <svg id="play-icon" width="14" height="14" viewBox="0 0 14 14" fill="white"><polygon points="2,1 13,7 2,13"/></svg>
+      <svg id="pause-icon" width="14" height="14" viewBox="0 0 14 14" fill="white" style="display:none"><rect x="2" y="1" width="4" height="12" rx="1"/><rect x="8" y="1" width="4" height="12" rx="1"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="controls">
+  <button class="ctrl-btn active" id="btn-work"     onclick="switchMode('work')"             title="Focus">🍅</button>
+  <button class="ctrl-btn"        id="btn-short"    onclick="switchMode('short')"            title="Short break">☕</button>
+  <button class="ctrl-btn"        id="btn-long"     onclick="switchMode('long')"             title="Long break">🛋️</button>
+  <button class="ctrl-btn"        id="btn-sounds"   onclick="togglePanel('sounds-panel')"   title="Sounds">🔊</button>
+  <button class="ctrl-btn"        id="btn-settings" onclick="togglePanel('settings-panel')" title="Settings">⚙️</button>
+</div>
+
+<script>
+var ipcRenderer = require('electron').ipcRenderer
+var CIRC = 2 * Math.PI * 93
+document.getElementById('ring-progress').style.strokeDasharray = CIRC
+
+var S = { work: parseInt(localStorage.getItem('s_work')||'25'), short: parseInt(localStorage.getItem('s_short')||'5'), long: parseInt(localStorage.getItem('s_long')||'15') }
+var selSound = localStorage.getItem('sel_sound') || 'fanfare'
+var mode = 'work', totalSecs = S.work*60, remSecs = S.work*60
+var running = false, iv = null, sessions = 0, openPanel = null
+var alarmCtx = null, alarmRunning = false, alarmTimeout = null
+
+document.getElementById('sv-work').textContent  = S.work
+document.getElementById('sv-short').textContent = S.short
+document.getElementById('sv-long').textContent  = S.long
+
+var SOUNDS = {
+  fanfare: { label: '🎺 Fanfare', dur: 1200, fn: function(c){ [[523,.00,.10],[659,.12,.10],[784,.24,.10],[1047,.38,.50]].forEach(function(n){ var o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='square';o.frequency.value=n[0];g.gain.setValueAtTime(0,c.currentTime+n[1]);g.gain.linearRampToValueAtTime(.4,c.currentTime+n[1]+.02);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+n[1]+n[2]);o.start(c.currentTime+n[1]);o.stop(c.currentTime+n[1]+n[2]+.05) }) } },
+  boing:   { label: '🥁 Boing',   dur: 900,  fn: function(c){ var o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.setValueAtTime(900,c.currentTime);o.frequency.exponentialRampToValueAtTime(120,c.currentTime+.7);g.gain.setValueAtTime(.45,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.7);o.start();o.stop(c.currentTime+.75) } },
+  victory: { label: '🏆 Victory', dur: 1400, fn: function(c){ [[392,.00],[494,.15],[587,.28],[784,.40],[987,.52]].forEach(function(n,i){ var o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=i===4?'triangle':'square';o.frequency.value=n[0];g.gain.setValueAtTime(0,c.currentTime+n[1]);g.gain.linearRampToValueAtTime(.35,c.currentTime+n[1]+.02);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+n[1]+(i===4?.6:.12));o.start(c.currentTime+n[1]);o.stop(c.currentTime+n[1]+.7) }) } },
+  alien:   { label: '👾 Alien',   dur: 900,  fn: function(c){ var o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sawtooth';o.frequency.setValueAtTime(200,c.currentTime);o.frequency.setValueAtTime(800,c.currentTime+.1);o.frequency.setValueAtTime(300,c.currentTime+.2);o.frequency.setValueAtTime(1000,c.currentTime+.3);o.frequency.setValueAtTime(150,c.currentTime+.4);g.gain.setValueAtTime(.35,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.65);o.start();o.stop(c.currentTime+.7) } },
+  sadtuba: { label: '😢 Sad tuba',dur: 2200, fn: function(c){ [[220,.00,.4],[196,.35,.4],[175,.68,.4],[147,.98,.9]].forEach(function(n){ var o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sawtooth';o.frequency.value=n[0];g.gain.setValueAtTime(.4,c.currentTime+n[1]);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+n[1]+n[2]);o.start(c.currentTime+n[1]);o.stop(c.currentTime+n[1]+n[2]+.05) }) } },
+  coins:   { label: '🪙 Coins',   dur: 700,  fn: function(c){ [0,.07,.14,.21,.28,.35].forEach(function(t){ var o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=1200+Math.random()*400;g.gain.setValueAtTime(.4,c.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+t+.09);o.start(c.currentTime+t);o.stop(c.currentTime+t+.11) }) } }
+}
+
+var grid = document.getElementById('sound-grid')
+Object.keys(SOUNDS).forEach(function(k) {
+  var b = document.createElement('button')
+  b.className = 'sound-opt' + (k===selSound?' selected':'')
+  b.textContent = SOUNDS[k].label
+  b.addEventListener('click', function() {
+    selSound=k; localStorage.setItem('sel_sound',k)
+    document.querySelectorAll('.sound-opt').forEach(function(x){x.classList.remove('selected')})
+    b.classList.add('selected')
+    stopAlarm(); startAlarm(k, true)
+  })
+  grid.appendChild(b)
+})
+
+function startAlarm(key, preview) {
+  stopAlarm(); alarmRunning=true
+  if(!preview) document.getElementById('stop-btn').classList.add('show')
+  loopAlarm(key, preview)
+}
+function loopAlarm(key, preview) {
+  if(!alarmRunning) return
+  alarmCtx = new (window.AudioContext||window.webkitAudioContext)()
+  SOUNDS[key].fn(alarmCtx)
+  if(!preview) alarmTimeout=setTimeout(function(){loopAlarm(key,false)}, SOUNDS[key].dur+300)
+  else alarmTimeout=setTimeout(stopAlarm, SOUNDS[key].dur+100)
+}
+function stopAlarm() {
+  alarmRunning=false; clearTimeout(alarmTimeout)
+  document.getElementById('stop-btn').classList.remove('show')
+  if(alarmCtx){try{alarmCtx.close()}catch(e){} alarmCtx=null}
+}
+function handleOverlayClick() { stopAlarm(); dismissMsg() }
+
+function toggleTimer() { running?pause():start() }
+function start() {
+  running=true; document.getElementById('face').classList.add('running')
+  document.getElementById('play-icon').style.display='none'
+  document.getElementById('pause-icon').style.display='block'
+  if(mode==='work'&&remSecs===totalSecs) fetchMsg('start')
+  iv=setInterval(function(){remSecs--;renderTime();renderRing();if(remSecs<=0)onComplete()},1000)
+}
+function pause() {
+  running=false; document.getElementById('face').classList.remove('running')
+  clearInterval(iv)
+  document.getElementById('play-icon').style.display='block'
+  document.getElementById('pause-icon').style.display='none'
+}
+function onComplete() {
+  pause(); startAlarm(selSound, false)
+  if(mode==='work'){sessions=Math.min(sessions+1,4);renderSessionDots();fetchMsg('finish')}
+  else fetchMsg('break_done')
+  setTimeout(function(){remSecs=totalSecs;renderTime();renderRing()},600)
+}
+function switchMode(m) {
+  pause();mode=m;totalSecs=S[m]*60;remSecs=totalSecs
+  document.getElementById('ring-progress').style.stroke=m==='work'?'#ff4d1c':'#4a9eff'
+  document.getElementById('mode-label').textContent=m==='work'?'FOCUS':m==='short'?'SHORT BREAK':'LONG BREAK'
+  document.querySelectorAll('.ctrl-btn').forEach(function(b){b.classList.remove('active')})
+  document.getElementById('btn-'+m).classList.add('active')
+  renderTime();renderRing()
+}
+function renderTime(){var m=Math.floor(remSecs/60),s=remSecs%60;document.getElementById('time-display').textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s}
+function renderRing(){document.getElementById('ring-progress').style.strokeDashoffset=CIRC*(1-remSecs/totalSecs)}
+function renderSessionDots(){for(var i=0;i<4;i++)document.getElementById('sd'+i).classList.toggle('done',i<sessions)}
+function adj(k,d){S[k]=Math.max(1,Math.min(k==='work'?120:60,S[k]+d));document.getElementById('sv-'+k).textContent=S[k];localStorage.setItem('s_'+k,S[k]);if(k===mode){totalSecs=S[k]*60;remSecs=totalSecs;renderTime();renderRing()}}
+function togglePanel(id){var p=document.getElementById(id);if(openPanel&&openPanel!==p)openPanel.classList.remove('open');p.classList.toggle('open');openPanel=p.classList.contains('open')?p:null}
+document.addEventListener('click',function(e){if(openPanel&&!e.target.closest('.panel')&&!e.target.closest('.ctrl-btn')){openPanel.classList.remove('open');openPanel=null}})
+
+var EMOJIS={start:['🚀','⚡','🔥','💪','🎯','🧠','😤'],finish:['🎉','🥳','🏆','✨','🎊','👑','🤩'],break_done:['😤','💼','⚡','🔋','🎮','🫠','👀']}
+var FB={start:["Let's crush it!","Brace yourself. Focus incoming.","You got this. Probably.","Let the hyperfocus begin.","Distractions fear you. Go."],finish:["Nailed it. You absolute legend.","Gold medal. Olympic committee called.","Chef's kiss. Now breathe.","You just out-focused a monk.","Session complete. Unstoppable."],break_done:["Break's over. Back to chaos.","You rested. Now earn it.","Snack eaten. Brain recharged. Go.","Refresh complete. Deploy yourself.","Okay champ, back to it."]}
+
+async function fetchMsg(type) {
+  var emoji=EMOJIS[type][Math.floor(Math.random()*EMOJIS[type].length)]
+  showBigMsg(emoji,'...')
+  try {
+    var text=await ipcRenderer.invoke('get-message', type)
+    if(text){document.getElementById('msg-text-big').textContent=text;return}
+  } catch(e){}
+  var m=FB[type];document.getElementById('msg-text-big').textContent=m[Math.floor(Math.random()*m.length)]
+}
+function showBigMsg(emoji,text){
+  document.getElementById('msg-emoji-big').textContent=emoji
+  document.getElementById('msg-text-big').textContent=text
+  document.getElementById('msg-overlay').classList.add('show')
+  setTimeout(function(){document.getElementById('msg-overlay').classList.remove('show')},8000)
+}
+function dismissMsg(){document.getElementById('msg-overlay').classList.remove('show')}
+
+renderTime();renderRing()
+</script>
+</body>
+</html>
