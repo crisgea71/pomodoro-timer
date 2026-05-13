@@ -1,4 +1,7 @@
 # 🍅 Pomodoro Focus
+## ⬇️ Download
+
+[![Download](https://img.shields.io/badge/Download-macOS%20DMG-black?style=for-the-badge&logo=apple)](https://github.com/crisgea71/pomodoro-timer/releases/latest/download/Pomodoro.Focus-1.0.0-arm64.dmg)
 
 > A Pomodoro timer that lives in your menu bar, screams at you when time's up, and roasts you with AI-generated messages every session.
 
@@ -21,7 +24,9 @@
 
 ## Demo
 
-![Pomodoro Focus Demo](assets/demo.png)
+![Pomodoro Focus Demo](demo1.png)
+![Pomodoro Focus Demo](demo4.png)
+![Pomodoro Focus Demo](demo3.png)
 
 ---
 
