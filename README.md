@@ -25,7 +25,7 @@
 ## Demo
 
 ![Pomodoro Focus Demo](pom.gif)
-![Pomodoro Focus Demo](demo4.png)
+![Pomodoro Focus Demo](pom2.gif)
 ![Pomodoro Focus Demo](demo3.png)
 
 ---
