@@ -26,8 +26,9 @@
 
 ![Pomodoro Focus Demo](pom.gif)
 ![Pomodoro Focus Demo](pom2.gif)
-![Pomodoro Focus Demo](demo3.png)
-
+![Pomodoro Focus Demo](pom3.png)
+![Pomodoro Focus Demo](pom4.png)
+![Pomodoro Focus Demo](pom5.png)
 ---
 
 ## Tech Stack
